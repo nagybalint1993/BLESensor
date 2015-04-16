@@ -32,7 +32,7 @@ import static java.util.UUID.fromString;
 /**
  * Created by BalintGyorgy on 2015.04.09..
  */
-public class DeviceControlActivity extends Activity implements BluetoothAdapter.LeScanCallback {
+public class DeviceControlActivity extends Activity  {
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
@@ -60,11 +60,14 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
 
 
     private BluetoothAdapter mBluetoothAdapter;
-    private SparseArray<BluetoothDevice> mDevices;
 
     private BluetoothGatt mConnectedGatt;
 
     private TextView mObj, mAmb;
+    private TextView mTemperature;
+    private TextView mHumidity;
+    private TextView mPressure;
+
 
     private ProgressDialog mProgress;
     private String mDeviceName;
@@ -74,6 +77,8 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
 
     private DecimalFormat decimal = new DecimalFormat("+0.00;-0.00");
     private BluetoothDevice device;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,7 +96,8 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
          */
         mAmb = (TextView) findViewById(R.id.TVTemperatureAmb);
         mObj = (TextView) findViewById(R.id.TVTemperatureObj);
-
+        mPressure= (TextView) findViewById(R.id.TVPressure);
+        mHumidity= (TextView) findViewById(R.id.TVHumidity);
 
         /*
          * Bluetooth in Android 4.3 is accessed via the BluetoothManager, rather than
@@ -100,7 +106,6 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         mBluetoothAdapter = manager.getAdapter();
 
-        mDevices = new SparseArray<BluetoothDevice>();
 
         /*
          * A progress dialog will be needed while the connection process is
@@ -160,9 +165,6 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
         //Make sure dialog is hidden
         mProgress.dismiss();
         //Cancel any scans in progress
-        mHandler.removeCallbacks(mStopRunnable);
-        mHandler.removeCallbacks(mStartRunnable);
-        mBluetoothAdapter.stopLeScan(this);
     }
 
     @Override
@@ -174,89 +176,18 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
             mConnectedGatt = null;
         }
     }
-/*
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Add the "scan" option to the menu
-        getMenuInflater().inflate(R.menu.main, menu);
-        //Add any device elements we've discovered to the overflow menu
-        for (int i=0; i < mDevices.size(); i++) {
-            BluetoothDevice device = mDevices.valueAt(i);
-            menu.add(0, mDevices.keyAt(i), 0, device.getName());
-        }
 
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_scan:
-                mDevices.clear();
-                startScan();
-                return true;
-            default:
-                //Obtain the discovered device to connect with
-                BluetoothDevice device = mDevices.get(item.getItemId());
-                Log.i(TAG, "Connecting to " + device.getName());
-                /*
-                 * Make a connection with the device using the special LE-specific
-                 * connectGatt() method, passing in a callback for GATT events
-                 *
-                mConnectedGatt = device.connectGatt(this, false, mGattCallback);
-                //Display progress UI
-                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to "+device.getName()+"..."));
-                return super.onOptionsItemSelected(item);
-        }
-    }
-*/
 
     private void clearDisplayValues() {
         mAmb.setText("---");
         mObj.setText("---");
+        mHumidity.setText("---");
+        mPressure.setText("---");
     }
 
 
-    private Runnable mStopRunnable = new Runnable() {
-        @Override
-        public void run() {
-            stopScan();
-        }
-    };
-    private Runnable mStartRunnable = new Runnable() {
-        @Override
-        public void run() {
-            startScan();
-        }
-    };
 
-    private void startScan() {
-        mBluetoothAdapter.startLeScan(this);
-        setProgressBarIndeterminateVisibility(true);
 
-        mHandler.postDelayed(mStopRunnable, 2500);
-    }
-
-    private void stopScan() {
-        mBluetoothAdapter.stopLeScan(this);
-        setProgressBarIndeterminateVisibility(false);
-    }
-
-    /* BluetoothAdapter.LeScanCallback */
-
-    @Override
-    public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-        Log.i(TAG, "New LE Device: " + device.getName() + " @ " + rssi);
-        /*
-         * We are looking for SensorTag devices only, so validate the name
-         * that each device reports before adding it to our collection
-         */
-        if (DEVICE_NAME.equals(device.getName())) {
-            mDevices.put(device.hashCode(), device);
-            //Update the overflow menu
-            invalidateOptionsMenu();
-        }
-    }
 
     /*
      * In this callback, we've created a bit of a state machine to enforce that only
@@ -568,7 +499,7 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
     private void updateHumidityValues(BluetoothGattCharacteristic characteristic) {
         double humidity = SensorTagData.extractHumidity(characteristic);
 
-       // mHumidity.setText(String.format("%.0f%%", humidity));
+         mHumidity.setText(String.format("%.0f%%", humidity));
     }
 
     private int[] mPressureCals;
@@ -592,7 +523,7 @@ public class DeviceControlActivity extends Activity implements BluetoothAdapter.
         double pressure = SensorTagData.extractBarometer(characteristic, mPressureCals);
         double temp = SensorTagData.extractBarTemperature(characteristic, mPressureCals);
 
-      //  mTemperature.setText(String.format("%.1f\u00B0C", temp));
-      //  mPressure.setText(String.format("%.2f", pressure));
+//        mTemperature.setText(String.format("%.1f\u00B0C", temp));
+        mPressure.setText(String.format("%.2f", pressure));
     }
 }
